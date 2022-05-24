@@ -6,6 +6,16 @@
  * version 2 as published by the Free Software Foundation.
  *
  */
+/*
+ * Copyright (C) 2018 SANYO Techno Solutions Tottori Co., Ltd.
+ *
+ * Changelog:
+ *
+ * 2018-Feb:  Add mac address setting in set_ethernet_addr().
+ * 2018-Mar:  Add LED setting.
+ *
+ */
+
 
 #include <linux/signal.h>
 #include <linux/slab.h>
@@ -25,6 +35,7 @@
 #include <uapi/linux/mdio.h>
 #include <linux/mdio.h>
 #include <linux/usb/cdc.h>
+#include <linux/kernel.h>
 
 /* Information for net-next */
 #define NETNEXT_VERSION		"08"
@@ -1026,11 +1037,15 @@ out1:
 	return ret;
 }
 
+static int ethernet_mac_addr[6];
+MODULE_PARM_DESC(ethernet_mac_addr, "r/w ethernet mac addr");
+module_param_array(ethernet_mac_addr, int, NULL, 0644);
+
 static int set_ethernet_addr(struct r8152 *tp)
 {
 	struct net_device *dev = tp->netdev;
 	struct sockaddr sa;
-	int ret;
+	int i,ret;
 
 	if (tp->version == RTL_VER_01)
 		ret = pla_ocp_read(tp, PLA_IDR, 8, sa.sa_data);
@@ -1043,6 +1058,9 @@ static int set_ethernet_addr(struct r8152 *tp)
 		netif_err(tp, probe, dev, "Invalid ether addr %pM\n",
 			  sa.sa_data);
 		eth_hw_addr_random(dev);
+		for(i = 0; i < 6; i++) {
+		  dev->dev_addr[i] = ethernet_mac_addr[i];
+		}
 		ether_addr_copy(sa.sa_data, dev->dev_addr);
 		ret = rtl8152_set_mac_address(dev, &sa);
 		netif_info(tp, probe, dev, "Random ether addr %pM\n",
@@ -3258,6 +3276,12 @@ static void r8152b_init(struct r8152 *tp)
 	ocp_data = GPHY_STS_MSK | SPEED_DOWN_MSK |
 		   SPDWN_RXDV_MSK | SPDWN_LINKCHG_MSK;
 	ocp_write_word(tp, MCU_TYPE_PLA, PLA_GPHY_INTR_IMR, ocp_data);
+
+	//LED1 LINK LED0 ACT
+	ocp_data = ocp_read_word(tp, MCU_TYPE_PLA, PLA_LED_FEATURE);
+	ocp_data &= ~0x00ff;
+	ocp_data |= 0x0038;
+	ocp_write_word(tp, MCU_TYPE_PLA, PLA_LEDSEL, ocp_data);
 
 	r8152b_enable_eee(tp);
 	r8152b_enable_aldps(tp);

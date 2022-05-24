@@ -251,6 +251,8 @@ static int ax88172_bind(struct usbnet *dev, struct usb_interface *intf)
 		ADVERTISE_ALL | ADVERTISE_CSMA | ADVERTISE_PAUSE_CAP);
 	mii_nway_restart(&dev->mii);
 
+	usbnet_link_change(dev, 0, 0);
+
 	return 0;
 
 out:
@@ -362,6 +364,8 @@ static int ax88772_reset(struct usbnet *dev)
 	asix_mdio_write(dev->net, dev->mii.phy_id, MII_ADVERTISE,
 			ADVERTISE_ALL | ADVERTISE_CSMA);
 	mii_nway_restart(&dev->mii);
+
+	usbnet_link_change(dev, 0, 0);
 
 	ret = asix_write_medium_mode(dev, AX88772_MEDIUM_DEFAULT);
 	if (ret < 0)
@@ -654,6 +658,8 @@ static int ax88178_reset(struct usbnet *dev)
 			ADVERTISE_1000FULL);
 
 	mii_nway_restart(&dev->mii);
+
+	usbnet_link_change(dev, 0, 0);
 
 	ret = asix_write_medium_mode(dev, AX88178_MEDIUM_DEFAULT);
 	if (ret < 0)
